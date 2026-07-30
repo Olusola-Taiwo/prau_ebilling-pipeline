@@ -1,0 +1,80 @@
+{
+  "name": "prau_ebilling_pipeline",
+  "tasks": [
+    {
+      "task_key": "generate_raw",
+      "description": "Generate synthetic raw data for all source_systems",
+      "notebook_task": {
+        "notebook_path": "/Repos/olusola.taiwo@cntw.nhs.uk/prau_ebilling-pipeline/src/01_raw_data_generation"
+      },
+      "job_cluster_key": "prau_cluster"
+    },
+    {
+      "task_key": "bronze_ingestion",
+      "depends_on": [
+        { "task_key": "generate_raw" }
+      ],
+      "description": "Ingest raw JSON into Bronze Delta tables",
+      "notebook_task": {
+        "notebook_path": "/Repos/olusola.taiwo@cntw.nhs.uk/prau_ebilling-pipeline/src/02_bronze_ingestion"
+      },
+      "job_cluster_key": "prau_cluster"
+    },
+    {
+      "task_key": "silver_cleaning",
+      "depends_on": [
+        { "task_key": "bronze_ingestion" }
+      ],
+      "description": "Apply cleaning, DQ checks, and schema standardisation",
+      "notebook_task": {
+        "notebook_path": "/Repos/olusola.taiwo@cntw.nhs.uk/prau_ebilling-pipeline/src/03_silver_cleaning"
+      },
+      "job_cluster_key": "prau_cluster"
+    },
+    {
+      "task_key": "silver_business_rules",
+      "depends_on": [
+        { "task_key": "silver_cleaning" }
+      ],
+      "description": "Join sources and apply business rules (Silver+)",
+      "notebook_task": {
+        "notebook_path": "/Repos/olusola.taiwo@cntw.nhs.uk/prau_ebilling-pipeline/src/04_silver_business_rules"
+      },
+      "job_cluster_key": "prau_cluster"
+    },
+    {
+      "task_key": "gold_modelling",
+      "depends_on": [
+        { "task_key": "silver_business_rules" }
+      ],
+      "description": "Create Gold KPI tables for reporting",
+      "notebook_task": {
+        "notebook_path": "/Repos/olusola.taiwo@cntw.nhs.uk/prau_ebilling-pipeline/src/05_gold_modelling"
+      },
+      "job_cluster_key": "prau_cluster"
+    },
+    {
+      "task_key": "audit_logging",
+      "depends_on": [
+        { "task_key": "gold_modelling" }
+      ],
+      "description": "Write batch-level audit log",
+      "notebook_task": {
+        "notebook_path": "/Repos/olusola.taiwo@cntw.nhs.uk/prau_ebilling-pipeline/src/06_audit_logging"
+      },
+      "job_cluster_key": "prau_cluster"
+    }
+  ],
+  "job_clusters": [
+    {
+      "job_cluster_key": "prau_cluster",
+      "new_cluster": {
+        "spark_version": "14.3.x-scala2.12",
+        "node_type_id": "Standard_DS3_v2",
+        "num_workers": 2
+      }
+    }
+  ],
+  "timeout_seconds": 0,
+  "max_concurrent_runs": 1
+}
